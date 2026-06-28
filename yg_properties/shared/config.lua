@@ -564,3 +564,191 @@ Config.BuildCatalog = {
 },
 
 }
+-- ============================================================
+-- lr_properties parity additions
+-- ============================================================
+Config.Locale = Config.Locale or 'tr'
+Config.MaxObjects = Config.MaxObjects or 300
+Config.RenderDistance = Config.RenderDistance or 80.0
+Config.CacheExpire = Config.CacheExpire or 30000
+Config.Currency = Config.Currency or Config.MoneyType or 'cash'
+Config.CommandRealtor = Config.CommandRealtor or 'realtor'
+Config.AdminAce = Config.AdminAce or 'command.admin'
+
+Config.Bucket = Config.Bucket or {
+  enabled = true,
+  base = Config.BucketBase or 200000,
+  lockdown = 'strict',
+  populationEnabled = false,
+}
+Config.Bucket.base = Config.Bucket.base or Config.BucketBase or 200000
+
+Config.ShellBase = Config.ShellBase or vector3(-1700.0, -1150.0, 100.0)
+Config.ShellFallbackModel = Config.ShellFallbackModel or 'imp_prop_impexp_intintnceil'
+
+Config.Thumbnails = Config.Thumbnails or {
+  enabled = true,
+  localPack = true,
+  cdn = '',
+}
+
+Config.AccessPoint = Config.AccessPoint or {
+  ghostModel = 'prop_cs_cardbox_01',
+  openKey = 38,
+  drawDist = 6.0,
+  interactDist = 1.6,
+  targetZoneSize = vector3(1.2, 1.2, 2.0),
+  targetZoneDistExtra = 0.4,
+  markers = {
+    storage = { label = 'Depo', color = { r = 255, g = 159, b = 10 } },
+    wardrobe = { label = 'Dolap', color = { r = 90, g = 200, b = 250 } },
+    safe = { label = 'Kasa', color = { r = 120, g = 220, b = 140 } },
+  }
+}
+
+Config.Editor = Config.Editor or {
+  camSpeed = 0.35,
+  camSpeedFast = 1.1,
+  camSpeedSlow = 0.12,
+  lookSens = 6.0,
+  rotateStep = 2.0,
+  rotateStepFast = 15.0,
+  surfaceSnap = true,
+  gridSize = 0.1,
+  placeDistance = 6.0,
+}
+
+Config.Interaction = Config.Interaction or {
+  mode = 'target',
+  markerType = 36,
+  markerSize = vector3(0.3, 0.3, 0.3),
+  markerColor = { r = 120, g = 170, b = 255, a = 180 },
+  drawDist = 8.0,
+  interactDist = 1.6,
+  interactKey = 38,
+  command = 'property',
+  targetLabel = 'Mülk',
+  targetIcon = 'fas fa-house',
+  menuCommand = 'propmenu',
+  menuKey = 'F6',
+}
+
+Config.Ownership = Config.Ownership or {
+  allowBuy = true,
+  allowRent = true,
+  rentInterval = 7 * 24 * 60 * 60,
+  rentGraceMisses = 1,
+}
+
+Config.Commission = Config.Commission or {
+  enabled = true,
+  percent = 5.0,
+  fromBuyer = false,
+}
+
+Config.Tax = Config.Tax or {
+  enabled = true,
+  interval = 7 * 24 * 60 * 60,
+  houseRate = 0.01,
+  businessRate = 0.02,
+  minTax = 100,
+  graceMisses = 2,
+}
+
+Config.Business = Config.Business or {
+  entryFeeMax = 5000,
+  payrollInterval = 7 * 24 * 60 * 60,
+  maxEmployees = 15,
+  grades = {
+    [0] = { label = 'Çalışan', canManageStash = true, canLock = false, canDecorate = false, canManageStaff = false },
+    [1] = { label = 'Müdür', canManageStash = true, canLock = true, canDecorate = true, canManageStaff = false },
+    [2] = { label = 'Ortak', canManageStash = true, canLock = true, canDecorate = true, canManageStaff = true },
+  },
+}
+
+Config.Keys = Config.Keys or {
+  maxHolders = 20,
+  doorbell = true,
+  knockKey = 38,
+}
+
+Config.Storage = Config.Storage or {
+  house = { slots = 50, weight = 100000 },
+  business = { slots = 80, weight = 200000 },
+}
+Config.StashSize = Config.StashSize or Config.Storage.house.slots
+Config.StashWeight = Config.StashWeight or Config.Storage.house.weight
+
+Config.Wardrobe = Config.Wardrobe or {
+  openEvent = 'yg_properties:client:openWardrobe',
+}
+
+Config.Gizmo = Config.Gizmo or {
+  moveStep = 0.01,
+  moveStepFast = 0.10,
+  rotStep = 1.0,
+  rotStepFast = 15.0,
+  gridSize = 0.25,
+  raycastDist = 10.0,
+  keys = {
+    confirm = 191,
+    cancel = 194,
+    toggleMode = 19,
+    snapGrid = 47,
+    snapSurf = 29,
+    undo = 20,
+    redo = 21,
+    copy = 55,
+    fast = 21,
+    xPlus = 174, xMinus = 175,
+    yPlus = 172, yMinus = 173,
+    zPlus = 10, zMinus = 11,
+  }
+}
+
+Config.Notify = Config.Notify or {
+  duration = 4500,
+  position = 'top-right',
+}
+
+Config.InteriorCatalog = Config.InteriorCatalog or {}
+Config.InteriorById = Config.InteriorById or {}
+Config.InteriorCategories = Config.InteriorCategories or {
+  { id = 'shell', label = 'Shelller' },
+  { id = 'custom', label = 'Custom' },
+}
+
+Config.CatalogCategories = Config.CatalogCategories or {}
+Config.Catalog = Config.Catalog or {}
+Config.CatalogByModel = Config.CatalogByModel or {}
+
+if #Config.Catalog == 0 and type(Config.BuildCatalog) == 'table' then
+  for _, category in ipairs(Config.BuildCatalog) do
+    Config.CatalogCategories[#Config.CatalogCategories + 1] = {
+      id = tostring(category.category or ('cat_' .. tostring(#Config.CatalogCategories + 1))):gsub('%s+', '_'):lower(),
+      label = category.category or 'Kategori',
+    }
+
+    local catId = Config.CatalogCategories[#Config.CatalogCategories].id
+    for _, item in ipairs(category.items or {}) do
+      local entry = {
+        name = item.label,
+        model = item.model,
+        cat = catId,
+        thumb = ('%s.png'):format(item.model),
+      }
+      Config.Catalog[#Config.Catalog + 1] = entry
+      Config.CatalogByModel[item.model] = entry
+    end
+  end
+end
+
+Config.DefaultPermissions.employeesCanEnter = Config.DefaultPermissions.employeesCanEnter == true
+Config.DefaultPermissions.employeesCanManage = Config.DefaultPermissions.employeesCanManage == true
+Config.DefaultPermissions.employeesCanManageDoor = Config.DefaultPermissions.employeesCanManageDoor == true
+Config.DefaultPermissions.employeesCanSetEntryFee = Config.DefaultPermissions.employeesCanSetEntryFee == true
+Config.DefaultPermissions.employeesCanEditDescription = Config.DefaultPermissions.employeesCanEditDescription == true
+Config.DefaultPermissions.employeesCanBuild = Config.DefaultPermissions.employeesCanBuild ~= false
+Config.DefaultPermissions.employeesCanDeposit = Config.DefaultPermissions.employeesCanDeposit == true
+Config.DefaultPermissions.employeesCanWithdraw = Config.DefaultPermissions.employeesCanWithdraw == true
+Config.DefaultPermissions.employeesCanManageEmployees = Config.DefaultPermissions.employeesCanManageEmployees == true

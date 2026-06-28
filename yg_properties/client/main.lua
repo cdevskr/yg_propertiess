@@ -86,10 +86,11 @@ local function SpawnShellForProperty(prop)
     if not prop or not prop.shell_id then return nil, nil, nil end
 
     local shellId = tonumber(prop.shell_id)
+    local shellBase = Config.ShellBase or vector3(1000.0, -1000.0, 1000.0)
     local base = vector3(
-        1000.0 + (prop.id * 100.0),
-        -1000.0,
-        1000.0
+        shellBase.x + (prop.id * 20.0),
+        shellBase.y,
+        shellBase.z
     )
     
     print('[yg_properties] shell spawn start | propertyId=' .. tostring(prop.id) .. ' | shellId=' .. tostring(shellId))
@@ -317,7 +318,11 @@ local lastDoorRebuild = 0
 
 local function clearDoorTargets()
     for _, t in ipairs(createdTargets) do
-        exports.ox_target:removeZone(t)
+        if Bridge and Bridge.RemoveZone then
+            Bridge.RemoveZone(t)
+        else
+            pcall(function() exports.ox_target:removeZone(t) end)
+        end
     end
     createdTargets = {}
     doorMarkers = {}
@@ -352,6 +357,17 @@ local function makeDoorOptions(prop)
                 TriggerEvent('yg_properties:client:buy', prop.id)
             end
         }
+
+        if Config.Ownership and Config.Ownership.allowRent and (tonumber(prop.rent_price) or 0) > 0 then
+            opts[#opts + 1] = {
+                name = ('yg_prop_rent_%s'):format(prop.id),
+                icon = 'fa-solid fa-key',
+                label = ('Kirala ($%s)'):format(Utils.money(prop.rent_price or 0)),
+                onSelect = function()
+                    TriggerEvent('yg_properties:client:rent', prop.id)
+                end
+            }
+        end
     end
 
     return opts
@@ -377,16 +393,16 @@ local function RebuildDoorTargets()
                 owner = prop.owner_citizenid,
                 label = prop.label or 'Mekan',
                 price = tonumber(prop.price) or 0,
-                entry_fee = tonumber(prop.entry_fee) or 0
+                entry_fee = tonumber(prop.entry_fee) or 0,
+                rent_price = tonumber(prop.rent_price) or 0
             }
 
-            local zoneId = exports.ox_target:addSphereZone({
-                coords = vec3(door.x, door.y, door.z),
-                radius = 1.6,
-                options = makeDoorOptions(prop),
-            })
-
-            table.insert(createdTargets, zoneId)
+            if Config.Interaction and Config.Interaction.mode == 'target' and Bridge and Bridge.AddDoorTarget and Bridge.target then
+                local zoneId = Bridge.AddDoorTarget(prop.id, door, makeDoorOptions(prop))
+                if zoneId then
+                    table.insert(createdTargets, zoneId)
+                end
+            end
         end
     end
     lastDoorRebuild = GetGameTimer()
@@ -426,6 +442,10 @@ end)
 AddEventHandler('onClientResourceStart', function(res)
     if res ~= GetCurrentResourceName() then return end
     RefreshProperties()
+    RebuildDoorTargets()
+end)
+
+AddEventHandler('yg_properties:client:targetReady', function()
     RebuildDoorTargets()
 end)
 
@@ -470,6 +490,9 @@ CreateThread(function()
 
                     if not m.owner or m.owner == "" then
                         lines[#lines + 1] = ('~y~Satılık~s~  ~g~$%s'):format(CashFmt(m.price))
+                        if Config.Ownership and Config.Ownership.allowRent and tonumber(m.rent_price or 0) > 0 then
+                            lines[#lines + 1] = ('~w~Kira:~s~ ~g~$%s~s~'):format(CashFmt(m.rent_price))
+                        end
                     else
                         if m.type == 'business' and tonumber(m.entry_fee or 0) > 0 then
                             lines[#lines + 1] = ('~w~Giriş Ücreti:~s~ ~g~$%s~s~'):format(CashFmt(m.entry_fee))
@@ -518,7 +541,11 @@ end
 local function removeInteriorZone()
     if InteriorZoneId then
         pcall(function()
-            exports.ox_target:removeZone(InteriorZoneId)
+            if Bridge and Bridge.RemoveZone then
+                Bridge.RemoveZone(InteriorZoneId)
+            else
+                exports.ox_target:removeZone(InteriorZoneId)
+            end
         end)
         InteriorZoneId = nil
     end
@@ -541,6 +568,19 @@ function createInteriorZone(propertyId, coords)
     local v3 = vec3(InteriorMarkerCoords.x, InteriorMarkerCoords.y, InteriorMarkerCoords.z)
 
     local ok, zoneId = pcall(function()
+        if Bridge and Bridge.AddSphereZone and Bridge.target then
+            return Bridge.AddSphereZone(('yg_prop_exit_%s'):format(propertyId), { x = v3.x, y = v3.y, z = v3.z }, 2.0, {
+                {
+                    name = ('yg_prop_exit_%s'):format(propertyId),
+                    icon = 'fa-solid fa-door-closed',
+                    label = 'Dışarı Çık',
+                    onSelect = function()
+                        TriggerEvent('yg_properties:client:exit')
+                    end
+                }
+            })
+        end
+
         return exports.ox_target:addSphereZone({
             coords = v3,
             radius = 2.0,
@@ -732,10 +772,14 @@ RegisterNetEvent('yg_properties:client:showInfo', function(propertyId)
     lines[#lines + 1] = ('**Tür:** %s'):format(prop.type == 'business' and 'İş Yeri' or 'Ev')
     lines[#lines + 1] = ('**Kilit:** %s'):format(IsLocked(prop.locked) and 'Kilitli' or 'Açık')
 
-    if not prop.owner_citizenid then
+    if not prop.owner_citizenid or prop.owner_citizenid == '' then
         lines[#lines + 1] = ('**Durum:** Satılık ($%s)'):format(CashFmt(prop.price or 0))
     else
         lines[#lines + 1] = ('**Durum:** Sahipli')
+    end
+
+    if (tonumber(prop.rent_price) or 0) > 0 then
+        lines[#lines + 1] = ('**Kira:** $%s'):format(CashFmt(prop.rent_price or 0))
     end
 
     if prop.type == 'business' then
@@ -760,6 +804,17 @@ RegisterNetEvent('yg_properties:client:buy', function(propertyId)
         RebuildDoorTargets()
     else
         lib.notify({ type = 'error', description = ('Satın alınamadı: %s'):format(reason) })
+    end
+end)
+
+RegisterNetEvent('yg_properties:client:rent', function(propertyId)
+    local ok, reason = lib.callback.await('yg_properties:server:rentProperty', false, propertyId)
+    if ok then
+        lib.notify({ type = 'success', description = 'Mülk kiralandı.' })
+        RefreshProperties()
+        RebuildDoorTargets()
+    else
+        lib.notify({ type = 'error', description = ('Kiralanamadı: %s'):format(reason) })
     end
 end)
 
@@ -809,18 +864,19 @@ RegisterNetEvent('yg_properties:client:openPanel', function(propertyId)
     local myCid = MyCitizenId()
     local amOwner = (myCid and manageData.owner_citizenid == myCid)
     local perms = manageData.permissions or {}
+    local gradeRights = manageData.business_rights or {}
     local employeeCount = 0
 
     for _ in pairs(manageData.employees or {}) do
         employeeCount = employeeCount + 1
     end
 
-    local canDoor = amOwner or perms.employeesCanManageDoor
-    local canEntryFee = amOwner or perms.employeesCanSetEntryFee
-    local canDesc = amOwner or perms.employeesCanEditDescription
-    local canDeposit = amOwner or perms.employeesCanDeposit
-    local canWithdraw = amOwner or perms.employeesCanWithdraw
-    local canManageEmployees = amOwner or perms.employeesCanManageEmployees
+    local canDoor = amOwner or perms.employeesCanManageDoor or gradeRights.canLock
+    local canEntryFee = amOwner or perms.employeesCanSetEntryFee or gradeRights.canManageStaff
+    local canDesc = amOwner or perms.employeesCanEditDescription or gradeRights.canManageStaff
+    local canDeposit = amOwner or perms.employeesCanDeposit or gradeRights.canManageStash
+    local canWithdraw = amOwner or perms.employeesCanWithdraw or gradeRights.canManageStaff
+    local canManageEmployees = amOwner or perms.employeesCanManageEmployees or gradeRights.canManageStaff
 
     local options = {}
 
@@ -1028,6 +1084,60 @@ RegisterNetEvent('yg_properties:client:openPanel', function(propertyId)
                 TriggerServerEvent('yg_properties:server:setPermission', propertyId, 'employeesCanManageEmployees', input[9] == true)
 
                 lib.notify({ type = 'success', description = 'Yetkiler güncellendi.' })
+            end
+        }
+    end
+
+    options[#options + 1] = {
+        title = 'Anahtar Yönetimi',
+        description = 'Mülk anahtarlarını ver / geri al',
+        onSelect = function()
+            TriggerEvent('yg_properties:client:openKeysMenu', propertyId)
+        end
+    }
+
+    if isBusiness(prop) then
+        options[#options + 1] = {
+            title = 'Çalışan Grade / Maaş Yönetimi',
+            description = 'İşe al, çıkar, grade ve maaş düzenle',
+            onSelect = function()
+                TriggerEvent('yg_properties:client:openBusinessStaffMenu', propertyId)
+            end
+        }
+    end
+
+    options[#options + 1] = {
+        title = 'Depo Noktası Yerleştir',
+        description = 'Dünya üzerinde erişilebilir depo noktası oluştur',
+        onSelect = function()
+            TriggerEvent('yg_properties:client:startPlaceAccessPoint', propertyId, 'storage')
+        end
+    }
+
+    options[#options + 1] = {
+        title = 'Dolap Noktası Yerleştir',
+        description = 'Kıyafet / dolap erişim noktası oluştur',
+        onSelect = function()
+            TriggerEvent('yg_properties:client:startPlaceAccessPoint', propertyId, 'wardrobe')
+        end
+    }
+
+    if isBusiness(prop) then
+        options[#options + 1] = {
+            title = 'Kasa Noktası Yerleştir',
+            description = 'İşletme kasası erişim noktası oluştur',
+            onSelect = function()
+                TriggerEvent('yg_properties:client:startPlaceAccessPoint', propertyId, 'safe')
+            end
+        }
+    end
+
+    if amOwner then
+        options[#options + 1] = {
+            title = tostring(prop.tenure or '') == 'rent' and 'Kiralamayı Sonlandır' or 'Mülkü Sat / Bırak',
+            description = 'Mülkü tekrar satışa çıkar',
+            onSelect = function()
+                TriggerServerEvent('yg_properties:server:sellProperty', propertyId)
             end
         }
     end
