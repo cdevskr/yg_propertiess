@@ -199,7 +199,7 @@ print('[yg_properties] server/main.lua loaded')
 -- =========================
 lib.callback.register('yg_properties:server:getProperties', function(src)
   return MySQL.query.await([[
-    SELECT id,type,price,rent_price,tenure,rent_due,tax_due,label,description,locked,entry_fee,owner_citizenid,door_coords,interior_spawn,shell_id
+    SELECT id,type,price,rent_price,tenure,rent_due,tax_due,label,description,locked,entry_fee,owner_citizenid,door_coords,interior_spawn,shell_id,interior_id
     FROM yg_properties
   ]]) or {}
 end)
@@ -215,7 +215,7 @@ lib.callback.register('yg_properties:server:getProperty', function(src, property
   local row = MySQL.single.await([[
     SELECT
   id,type,price,rent_price,tenure,rent_due,tax_due,label,description,locked,entry_fee,owner_citizenid,
-  door_coords,interior_spawn,stash_money,employees,permissions,build_origin,shell_id,realtor_citizenid,realtor_name
+  door_coords,interior_spawn,stash_money,employees,permissions,build_origin,shell_id,interior_id,realtor_citizenid,realtor_name
   FROM yg_properties
     WHERE id = ?
     LIMIT 1
@@ -270,10 +270,24 @@ lib.callback.register('yg_properties:server:setInteriorSpawnHere', function(src,
   return true
 end)
 
+lib.callback.register('yg_properties:server:setInteriorId', function(src, propertyId, interiorId)
+  propertyId = tonumber_fn(propertyId)
+  if not propertyId then return false end
+  if not isAdmin(src) then return false end
+
+  if interiorId and not Config.InteriorById[interiorId] then return false end
+
+  MySQL.update.await('UPDATE yg_properties SET interior_id = ? WHERE id = ?', { interiorId or nil, propertyId })
+  clearPropertyCache(propertyId)
+  broadcastPropertyUpdate(propertyId, 'yg_properties:client:propertyUpdated', propertyId)
+  broadcastPropertyUpdate(propertyId, 'yg_properties:client:refresh')
+  return true
+end)
+
 -- =========================
 -- Admin create
 -- =========================
-local function createProperty(src, pType, price, entryFee, shellId)
+local function createProperty(src, pType, price, entryFee, shellId, interiorId)
   local ped = GetPlayerPed(src)
   local coords = GetEntityCoords(ped)
   local heading = GetEntityHeading(ped)
@@ -293,11 +307,15 @@ local function createProperty(src, pType, price, entryFee, shellId)
     shellId = nil
   end
 
+  if interiorId and not Config.InteriorById[interiorId] then
+    interiorId = nil
+  end
+
   local insertId = MySQL.insert.await([[
     INSERT INTO yg_properties
-      (type, label, price, rent_price, entry_fee, owner_citizenid, created_by, door_coords, build_origin, interior_spawn, locked, employees, permissions, shell_id, realtor_citizenid, realtor_name)
+      (type, label, price, rent_price, entry_fee, owner_citizenid, created_by, door_coords, build_origin, interior_spawn, locked, employees, permissions, shell_id, interior_id, realtor_citizenid, realtor_name)
     VALUES
-      (?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
+      (?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
   ]], {
     pType,
     label,
@@ -311,6 +329,7 @@ local function createProperty(src, pType, price, entryFee, shellId)
     employees,
     perms,
     shellId,
+    interiorId,
     createdBy,
     player.PlayerData.charinfo and (player.PlayerData.charinfo.firstname .. ' ' .. player.PlayerData.charinfo.lastname) or createdBy
   })
@@ -320,20 +339,29 @@ local function createProperty(src, pType, price, entryFee, shellId)
 end
 
 QBCore.Commands.Add('evolustur', 'Ev oluşturur', {
-  { name = 'fiyat', help = 'Satın alma fiyatı' },
-  { name = 'shell', help = 'Shell ID (opsiyonel)' },
+  { name = 'fiyat',    help = 'Satın alma fiyatı' },
+  { name = 'shell',    help = 'Shell ID (opsiyonel)' },
+  { name = 'interior', help = 'Interior ID (opsiyonel, örn: eclipse_1)' },
 }, false, function(source, args)
-  local price = tonumber_fn(args[1] or '0') or 0
-  local shellId = tonumber_fn(args[2])
+  local price      = tonumber_fn(args[1] or '0') or 0
+  local shellId    = tonumber_fn(args[2])
+  local interiorId = args[3]
 
   if shellId and (not Config.PropertyShells or not Config.PropertyShells[shellId]) then
     TriggerClientEvent('QBCore:Notify', source, ('Geçersiz shell ID: %s'):format(shellId), 'error')
     return
   end
 
-  local id = createProperty(source, 'home', price, 0, shellId)
+  if interiorId and not Config.InteriorById[interiorId] then
+    TriggerClientEvent('QBCore:Notify', source, ('Geçersiz interior ID: %s'):format(interiorId), 'error')
+    return
+  end
+
+  local id = createProperty(source, 'home', price, 0, shellId, interiorId)
   if id then
-    if shellId then
+    if interiorId then
+      TriggerClientEvent('QBCore:Notify', source, ('Ev oluşturuldu. ID: %s | Interior: %s'):format(id, interiorId), 'success')
+    elseif shellId then
       TriggerClientEvent('QBCore:Notify', source, ('Ev oluşturuldu. ID: %s | Shell: %s'):format(id, shellId), 'success')
     else
       TriggerClientEvent('QBCore:Notify', source, ('Ev oluşturuldu. ID: %s'):format(id), 'success')
@@ -345,24 +373,33 @@ QBCore.Commands.Add('evolustur', 'Ev oluşturur', {
 end)
 
 QBCore.Commands.Add('isyeriolustur', 'İş yeri oluşturur (Admin)', {
-  { name = 'fiyat', help = 'Satın alma fiyatı' },
-  { name = 'giris', help = 'Giriş ücreti (opsiyonel)' },
-  { name = 'shell', help = 'Shell ID (opsiyonel)' },
+  { name = 'fiyat',    help = 'Satın alma fiyatı' },
+  { name = 'giris',    help = 'Giriş ücreti (opsiyonel)' },
+  { name = 'shell',    help = 'Shell ID (opsiyonel)' },
+  { name = 'interior', help = 'Interior ID (opsiyonel, örn: office_1)' },
 }, false, function(source, args)
   if not isAdmin(source) then return end
   
-  local price = tonumber(args[1] or '0') or 0
-  local entryFee = tonumber(args[2] or '0') or 0
-  local shellId = tonumber(args[3])
+  local price      = tonumber(args[1] or '0') or 0
+  local entryFee   = tonumber(args[2] or '0') or 0
+  local shellId    = tonumber(args[3])
+  local interiorId = args[4]
 
   if shellId and (not Config.PropertyShells or not Config.PropertyShells[shellId]) then
     TriggerClientEvent('QBCore:Notify', source, ('Geçersiz shell ID: %s'):format(shellId), 'error')
     return
   end
 
-  local id = createProperty(source, 'business', price, entryFee, shellId)
+  if interiorId and not Config.InteriorById[interiorId] then
+    TriggerClientEvent('QBCore:Notify', source, ('Geçersiz interior ID: %s'):format(interiorId), 'error')
+    return
+  end
+
+  local id = createProperty(source, 'business', price, entryFee, shellId, interiorId)
   if id then
-    if shellId then
+    if interiorId then
+      TriggerClientEvent('QBCore:Notify', source, ('İş yeri oluşturuldu. ID: %s | Interior: %s'):format(id, interiorId), 'success')
+    elseif shellId then
       TriggerClientEvent('QBCore:Notify', source, ('İş yeri oluşturuldu. ID: %s | Shell: %s'):format(id, shellId), 'success')
     else
       TriggerClientEvent('QBCore:Notify', source, ('İş yeri oluşturuldu. ID: %s'):format(id), 'success')

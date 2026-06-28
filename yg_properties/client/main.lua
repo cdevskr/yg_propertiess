@@ -39,6 +39,7 @@ LocalPlayer.state.ygCurrentProperty = nil
 local CurrentShellObjects = nil
 local CurrentShellOffsets = nil
 local CurrentShellBase = nil
+local CurrentIPLs = {}
 
 -- ✅ OPTİMİZASYON: Cache system
 local propertyListCache = nil
@@ -656,6 +657,9 @@ RegisterNetEvent('yg_properties:client:enter', function(propertyId)
     LocalPlayer.state.ygCurrentProperty = prop
     SetCurrentProperty(prop)
 
+    -- Reset IPL tracking for this entry
+    CurrentIPLs = {}
+
     -- ✅ YENİ: Enter sırasında door targets'ı hemen temizle
     clearDoorTargets()
 
@@ -704,7 +708,24 @@ RegisterNetEvent('yg_properties:client:enter', function(propertyId)
             z = worldExit.z
         })
     else
-        if prop.interior_spawn and prop.interior_spawn ~= '' then
+        if prop.interior_id and Config.InteriorById and Config.InteriorById[prop.interior_id] then
+            local meta = Config.InteriorById[prop.interior_id]
+            for _, ipl in ipairs(meta.ipl or {}) do
+                if not IsIplActive(ipl) then
+                    RequestIpl(ipl)
+                end
+                CurrentIPLs[#CurrentIPLs + 1] = ipl
+            end
+            -- Wait until all IPLs are active before teleporting
+            local deadline = GetGameTimer() + 5000
+            for _, ipl in ipairs(meta.ipl or {}) do
+                while not IsIplActive(ipl) and GetGameTimer() < deadline do
+                    Wait(50)
+                end
+            end
+            teleportRaw(meta.spawn)
+            createInteriorZone(propertyId, { x = meta.exit.x, y = meta.exit.y, z = meta.exit.z })
+        elseif prop.interior_spawn and prop.interior_spawn ~= '' then
             local spawn = Shared.DecodeVec4(prop.interior_spawn)
             teleportRaw(spawn)
             createInteriorZone(propertyId, { x = spawn.x, y = spawn.y, z = spawn.z })
@@ -734,6 +755,12 @@ RegisterNetEvent('yg_properties:client:exit', function()
 
     DespawnCurrentShell(function()
         TriggerServerEvent('yg_properties:server:exitBucket')
+
+        -- Unload any IPL interiors that were loaded on enter
+        for _, ipl in ipairs(CurrentIPLs) do
+            if IsIplActive(ipl) then RemoveIpl(ipl) end
+        end
+        CurrentIPLs = {}
 
         LocalPlayer.state.ygPropertyId = nil
         LocalPlayer.state.ygCurrentProperty = nil
