@@ -151,17 +151,32 @@ local function hasEmployeePermission(src, propertyId, permKey)
 end
 
 local function canAccessProperty(src, propertyId)
+  local myCid = cid(src)
   if isOwner(src, propertyId) then return true end
+  if myCid and HasPropertyKey and HasPropertyKey(propertyId, myCid) then return true end
+  if myCid and IsBusinessEmployee and IsBusinessEmployee(propertyId, myCid) then return true end
   return hasEmployeePermission(src, propertyId, 'employeesCanEnter')
 end
 
 local function canManageProperty(src, propertyId)
+  local myCid = cid(src)
   if isOwner(src, propertyId) then return true end
+  if myCid and HasBusinessPermission then
+    if HasBusinessPermission(propertyId, myCid, 'canManageStaff')
+      or HasBusinessPermission(propertyId, myCid, 'canManageStash')
+      or HasBusinessPermission(propertyId, myCid, 'canLock')
+      or HasBusinessPermission(propertyId, myCid, 'canDecorate') then
+      return true
+    end
+  end
   return hasEmployeePermission(src, propertyId, 'employeesCanManage')
 end
 
 local function isAdmin(src)
-  return true
+  if QBCore.Functions.HasPermission then
+    return QBCore.Functions.HasPermission(src, 'admin') or QBCore.Functions.HasPermission(src, 'god')
+  end
+  return false
 end
 
 -- ✅ OPTİMİZASYON: Broadcast to bucket only
@@ -184,7 +199,7 @@ print('[yg_properties] server/main.lua loaded')
 -- =========================
 lib.callback.register('yg_properties:server:getProperties', function(src)
   return MySQL.query.await([[
-    SELECT id,type,price,label,description,locked,entry_fee,owner_citizenid,door_coords,interior_spawn,shell_id
+    SELECT id,type,price,rent_price,tenure,rent_due,tax_due,label,description,locked,entry_fee,owner_citizenid,door_coords,interior_spawn,shell_id
     FROM yg_properties
   ]]) or {}
 end)
@@ -199,8 +214,8 @@ lib.callback.register('yg_properties:server:getProperty', function(src, property
 
   local row = MySQL.single.await([[
     SELECT
-  id,type,price,label,description,locked,entry_fee,owner_citizenid,
-  door_coords,interior_spawn,stash_money,employees,permissions,build_origin,shell_id
+  id,type,price,rent_price,tenure,rent_due,tax_due,label,description,locked,entry_fee,owner_citizenid,
+  door_coords,interior_spawn,stash_money,employees,permissions,build_origin,shell_id,realtor_citizenid,realtor_name
   FROM yg_properties
     WHERE id = ?
     LIMIT 1
@@ -280,13 +295,14 @@ local function createProperty(src, pType, price, entryFee, shellId)
 
   local insertId = MySQL.insert.await([[
     INSERT INTO yg_properties
-      (type, label, price, entry_fee, owner_citizenid, created_by, door_coords, build_origin, interior_spawn, locked, employees, permissions, shell_id)
+      (type, label, price, rent_price, entry_fee, owner_citizenid, created_by, door_coords, build_origin, interior_spawn, locked, employees, permissions, shell_id, realtor_citizenid, realtor_name)
     VALUES
-      (?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, ?, ?, ?)
+      (?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
   ]], {
     pType,
     label,
     price or 0,
+    0,
     entryFee or 0,
     createdBy,
     Shared.EncodeVec4(door),
@@ -294,7 +310,9 @@ local function createProperty(src, pType, price, entryFee, shellId)
     (Config.DefaultLocked and 1 or 0),
     employees,
     perms,
-    shellId
+    shellId,
+    createdBy,
+    player.PlayerData.charinfo and (player.PlayerData.charinfo.firstname .. ' ' .. player.PlayerData.charinfo.lastname) or createdBy
   })
 
   if not insertId then return nil end
@@ -364,15 +382,29 @@ lib.callback.register('yg_properties:server:buyProperty', function(src, property
 
   local prop = MySQL.single.await('SELECT id, price, owner_citizenid FROM yg_properties WHERE id = ?', { propertyId })
   if not prop then return false, 'property_not_found' end
-  if prop.owner_citizenid then return false, 'already_owned' end
+  if prop.owner_citizenid and prop.owner_citizenid ~= '' then return false, 'already_owned' end
 
-  local price = tonumber_fn(prop.price) or 0
-  if price > 0 then
-    local ok = p.Functions.RemoveMoney(Config.MoneyType, price, 'buy-property')
+  local basePrice = tonumber_fn(prop.price) or 0
+  local charge = basePrice
+  if Config.Commission and Config.Commission.enabled and Config.Commission.fromBuyer then
+    charge = charge + math.floor(basePrice * ((Config.Commission.percent or 0) / 100.0))
+  end
+
+  if charge > 0 then
+    local ok = p.Functions.RemoveMoney(Config.Currency, charge, 'buy-property')
     if not ok then return false, 'not_enough_money' end
   end
 
-  MySQL.update.await('UPDATE yg_properties SET owner_citizenid = ? WHERE id = ?', { p.PlayerData.citizenid, propertyId })
+  local now = Utils.now()
+  MySQL.update.await('UPDATE yg_properties SET owner_citizenid = ?, tenure = ?, locked = 1, rent_due = NULL, tax_due = ? WHERE id = ?', {
+    p.PlayerData.citizenid,
+    'buy',
+    (Config.Tax and Config.Tax.enabled) and (now + (Config.Tax.interval or (7 * 24 * 60 * 60))) or nil,
+    propertyId
+  })
+  if ProcessPropertyCommission then
+    ProcessPropertyCommission(propertyId, Config.Commission and Config.Commission.fromBuyer and charge or basePrice)
+  end
   clearPropertyCache(propertyId)
   TriggerClientEvent('yg_properties:client:refresh', -1)
   return true, 'ok'
@@ -393,7 +425,7 @@ lib.callback.register('yg_properties:server:payEntryFee', function(src, property
   local fee = tonumber_fn(prop.entry_fee) or 0
   if fee <= 0 then return true, 'ok' end
 
-  local ok = p.Functions.RemoveMoney(Config.MoneyType, fee, 'business-entry-fee')
+  local ok = p.Functions.RemoveMoney(Config.Currency, fee, 'business-entry-fee')
   if not ok then return false, 'not_enough_money' end
 
   MySQL.update.await('UPDATE yg_properties SET stash_money = stash_money + ? WHERE id = ?', { fee, propertyId })
@@ -425,14 +457,15 @@ AddEventHandler('onServerResourceStart', function(resourceName)
     if GetCurrentResourceName() == resourceName then
         Wait(3000)
         
-        local props = MySQL.query.await('SELECT id FROM yg_properties') or {}
+        local props = MySQL.query.await('SELECT id, type FROM yg_properties') or {}
         
         for _, prop in ipairs_fn(props) do
             local stashId = ('yg_property_%s'):format(prop.id)
             local label = ('Mülk #%s Stash'):format(prop.id)
+            local stashCfg = (prop.type == 'business' and Config.Storage and Config.Storage.business) or (Config.Storage and Config.Storage.house) or { slots = 50, weight = 100000 }
             
             if exports.ox_inventory then
-                exports.ox_inventory:RegisterStash(stashId, label, 50, 100000)
+                exports.ox_inventory:RegisterStash(stashId, label, stashCfg.slots or 50, stashCfg.weight or 100000)
                 print('[yg_properties] Stash registered: ' .. stashId)
             end
         end
@@ -476,7 +509,11 @@ RegisterNetEvent('yg_properties:server:setLocked', function(propertyId, locked)
   propertyId = tonumber_fn(propertyId)
   if not propertyId then return end
 
-  if not isOwner(src, propertyId) and not hasEmployeePermission(src, propertyId, 'employeesCanManageDoor') then
+  local myCid = cid(src)
+  if not isOwner(src, propertyId)
+     and not hasEmployeePermission(src, propertyId, 'employeesCanManageDoor')
+     and not (myCid and HasPropertyKey and HasPropertyKey(propertyId, myCid))
+     and not (myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canLock')) then
     TriggerClientEvent('QBCore:Notify', src, 'Kilit yönetme yetkin yok!', 'error')
     return
   end
@@ -497,13 +534,17 @@ RegisterNetEvent('yg_properties:server:setEntryFee', function(propertyId, fee)
   fee = tonumber_fn(fee) or 0
   if not propertyId then return end
 
-  if not isOwner(src, propertyId) and not hasEmployeePermission(src, propertyId, 'employeesCanSetEntryFee') then
+  local myCid = cid(src)
+  if not isOwner(src, propertyId)
+     and not hasEmployeePermission(src, propertyId, 'employeesCanSetEntryFee')
+     and not (myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canManageStaff')) then
     TriggerClientEvent('QBCore:Notify', src, 'Giriş ücretini değiştirme yetkin yok.', 'error')
     return
   end
 
   if fee < 0 then fee = 0 end
-  if fee > 1000000 then fee = 1000000 end
+  local maxFee = (Config.Business and Config.Business.entryFeeMax) or 1000000
+  if fee > maxFee then fee = maxFee end
 
   MySQL.update.await('UPDATE yg_properties SET entry_fee = ? WHERE id = ?', { fee, propertyId })
 
@@ -530,6 +571,7 @@ lib.callback.register('yg_properties:server:getManagementData', function(src, pr
     return nil
   end
 
+  local myCid = cid(src)
   return {
     id = prop.id,
     owner_citizenid = prop.owner_citizenid,
@@ -540,7 +582,13 @@ lib.callback.register('yg_properties:server:getManagementData', function(src, pr
     entry_fee = tonumber_fn(prop.entry_fee) or 0,
     type = prop.type,
     label = prop.label or 'Mekan',
-    description = prop.description or ''
+    description = prop.description or '',
+    business_rights = {
+      canManageStash = myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canManageStash') or false,
+      canLock = myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canLock') or false,
+      canDecorate = myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canDecorate') or false,
+      canManageStaff = myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canManageStaff') or false,
+    }
   }
 end)
 
@@ -563,7 +611,10 @@ RegisterNetEvent('yg_properties:server:depositSafeMoney', function(propertyId, a
 
   if not propertyId or amount <= 0 then return end
 
-  if not isOwner(src, propertyId) and not hasEmployeePermission(src, propertyId, 'employeesCanDeposit') then
+  local myCid = cid(src)
+  if not isOwner(src, propertyId)
+     and not hasEmployeePermission(src, propertyId, 'employeesCanDeposit')
+     and not (myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canManageStash')) then
     TriggerClientEvent('QBCore:Notify', src, 'Kasaya para koyma yetkin yok.', 'error')
     return
   end
@@ -571,7 +622,7 @@ RegisterNetEvent('yg_properties:server:depositSafeMoney', function(propertyId, a
   local p = getPlayer(src)
   if not p then return end
 
-  local ok = p.Functions.RemoveMoney(Config.MoneyType, amount, 'property-safe-deposit')
+  local ok = p.Functions.RemoveMoney(Config.Currency, amount, 'property-safe-deposit')
   if not ok then
     TriggerClientEvent('QBCore:Notify', src, 'Üzerinde yeterli para yok.', 'error')
     return
@@ -592,7 +643,10 @@ RegisterNetEvent('yg_properties:server:withdrawSafeMoney', function(propertyId, 
 
   if not propertyId or amount <= 0 then return end
 
-  if not isOwner(src, propertyId) and not hasEmployeePermission(src, propertyId, 'employeesCanWithdraw') then
+  local myCid = cid(src)
+  if not isOwner(src, propertyId)
+     and not hasEmployeePermission(src, propertyId, 'employeesCanWithdraw')
+     and not (myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canManageStaff')) then
     TriggerClientEvent('QBCore:Notify', src, 'Kasadan para çekme yetkin yok.', 'error')
     return
   end
@@ -612,7 +666,7 @@ RegisterNetEvent('yg_properties:server:withdrawSafeMoney', function(propertyId, 
     amount, propertyId
   })
 
-  p.Functions.AddMoney(Config.MoneyType, amount, 'property-safe-withdraw')
+  p.Functions.AddMoney(Config.Currency, amount, 'property-safe-withdraw')
   TriggerClientEvent('QBCore:Notify', src, ('$%s kasadan çektin.'):format(amount), 'success')
   broadcastPropertyUpdate(propertyId, 'yg_properties:client:propertyUpdated', propertyId)
 end)
@@ -725,10 +779,18 @@ RegisterNetEvent('yg_properties:server:openStash', function(propertyId)
 
     local canAccess = false
     
+    local myCid = cid(src)
+    local prop = MySQL.single.await('SELECT type FROM yg_properties WHERE id = ? LIMIT 1', { propertyId })
+
     if isOwner(src, propertyId) then
         canAccess = true
-    elseif hasEmployeePermission(src, propertyId, 'employeesCanDeposit') or 
-           hasEmployeePermission(src, propertyId, 'employeesCanWithdraw') then
+    elseif prop and prop.type == 'business' then
+        if hasEmployeePermission(src, propertyId, 'employeesCanDeposit') or 
+           hasEmployeePermission(src, propertyId, 'employeesCanWithdraw') or
+           (myCid and HasBusinessPermission and HasBusinessPermission(propertyId, myCid, 'canManageStash')) then
+            canAccess = true
+        end
+    elseif myCid and HasPropertyKey and HasPropertyKey(propertyId, myCid) then
         canAccess = true
     end
 
@@ -740,10 +802,11 @@ RegisterNetEvent('yg_properties:server:openStash', function(propertyId)
     -- ✅ OX_INVENTORY STASH AÇMA
     local stashId = ('yg_property_%d'):format(propertyId)
     local label = ('Mülk #%d Stash'):format(propertyId)
+    local stashCfg = (prop and prop.type == 'business' and Config.Storage and Config.Storage.business) or (Config.Storage and Config.Storage.house) or { slots = Config.StashSize or 50, weight = Config.StashWeight or 100000 }
     
     -- Eğer stash kayıtlı değilse şimdi kaydet
     if exports.ox_inventory then
-        exports.ox_inventory:RegisterStash(stashId, label, Config.StashSize or 50, Config.StashWeight or 100000, src)
+        exports.ox_inventory:RegisterStash(stashId, label, stashCfg.slots or 50, stashCfg.weight or 100000, src)
     end
     
     TriggerClientEvent('yg_properties:client:openOxStash', src, stashId, label)

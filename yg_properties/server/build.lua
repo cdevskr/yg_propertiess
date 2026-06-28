@@ -18,13 +18,17 @@ local function canBuild(citizenid, propertyId)
   local prop = MySQL.single.await('SELECT owner_citizenid, employees, permissions FROM yg_properties WHERE id = ?', { propertyId })
   if not prop then return false end
   if prop.owner_citizenid == citizenid then return true end
+  if HasBusinessPermission and HasBusinessPermission(propertyId, citizenid, 'canDecorate') then return true end
 
   local perms = json.decode(prop.permissions or '{}') or {}
   if not perms.employeesCanBuild then return false end
 
   local employees = json.decode(prop.employees or '[]') or {}
   for _, v in ipairs_fn(employees) do
-    if v == citizenid then return true end
+    if v == citizenid or (type(v) == 'table' and v.citizenid == citizenid) then return true end
+  end
+  for k, v in pairs(employees) do
+    if k == citizenid and (v == true or type(v) == 'table') then return true end
   end
   return false
 end

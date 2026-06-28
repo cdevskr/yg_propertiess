@@ -9,7 +9,8 @@ function Shared.IsAdmin(playerData)
 end
 
 function Shared.BucketForProperty(propertyId)
-  return Config.BucketBase + tonumber(propertyId)
+  local base = (Config.Bucket and Config.Bucket.base) or Config.BucketBase or 0
+  return base + tonumber(propertyId)
 end
 
 function Shared.DecodeVec4(jsonStr)
