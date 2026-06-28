@@ -5,7 +5,7 @@ local taxMisses = {}
 local function chargeOwner(citizenid, amount, reason)
   local player = QBCore.Functions.GetPlayerByCitizenId(citizenid)
   if not player then return false, nil end
-  local ok = player.Functions.RemoveMoney(Config.MoneyType, amount, reason or 'property-charge')
+  local ok = player.Functions.RemoveMoney(Config.Currency, amount, reason or 'property-charge')
   return ok, player
 end
 

@@ -25,7 +25,7 @@ function ProcessPropertyCommission(propertyId, amount)
   if commission <= 0 then return end
   local realtor = QBCore.Functions.GetPlayerByCitizenId(prop.realtor_citizenid)
   if realtor then
-    realtor.Functions.AddMoney(Config.MoneyType, commission, 'property-realtor-commission')
+    realtor.Functions.AddMoney(Config.Currency, commission, 'property-realtor-commission')
     TriggerClientEvent('QBCore:Notify', realtor.PlayerData.source, ('$%s komisyon kazandın.'):format(commission), 'success')
   end
 end
@@ -77,7 +77,7 @@ lib.callback.register('yg_properties:server:rentProperty', function(src, propert
   end
 
   if charge > 0 then
-    local ok = player.Functions.RemoveMoney(Config.MoneyType, charge, 'rent-property')
+    local ok = player.Functions.RemoveMoney(Config.Currency, charge, 'rent-property')
     if not ok then return false, 'not_enough_money' end
   end
 
@@ -112,7 +112,7 @@ RegisterNetEvent('yg_properties:server:sellProperty', function(propertyId)
   if tostring(prop.tenure or '') == 'buy' then
     local refund = math.floor((tonumber(prop.price) or 0) * 0.5)
     if refund > 0 then
-      player.Functions.AddMoney(Config.MoneyType, refund, 'property-sell-refund')
+      player.Functions.AddMoney(Config.Currency, refund, 'property-sell-refund')
     end
   end
 

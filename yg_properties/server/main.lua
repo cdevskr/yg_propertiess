@@ -391,7 +391,7 @@ lib.callback.register('yg_properties:server:buyProperty', function(src, property
   end
 
   if charge > 0 then
-    local ok = p.Functions.RemoveMoney(Config.MoneyType, charge, 'buy-property')
+    local ok = p.Functions.RemoveMoney(Config.Currency, charge, 'buy-property')
     if not ok then return false, 'not_enough_money' end
   end
 
@@ -425,7 +425,7 @@ lib.callback.register('yg_properties:server:payEntryFee', function(src, property
   local fee = tonumber_fn(prop.entry_fee) or 0
   if fee <= 0 then return true, 'ok' end
 
-  local ok = p.Functions.RemoveMoney(Config.MoneyType, fee, 'business-entry-fee')
+  local ok = p.Functions.RemoveMoney(Config.Currency, fee, 'business-entry-fee')
   if not ok then return false, 'not_enough_money' end
 
   MySQL.update.await('UPDATE yg_properties SET stash_money = stash_money + ? WHERE id = ?', { fee, propertyId })
@@ -622,7 +622,7 @@ RegisterNetEvent('yg_properties:server:depositSafeMoney', function(propertyId, a
   local p = getPlayer(src)
   if not p then return end
 
-  local ok = p.Functions.RemoveMoney(Config.MoneyType, amount, 'property-safe-deposit')
+  local ok = p.Functions.RemoveMoney(Config.Currency, amount, 'property-safe-deposit')
   if not ok then
     TriggerClientEvent('QBCore:Notify', src, 'Üzerinde yeterli para yok.', 'error')
     return
@@ -666,7 +666,7 @@ RegisterNetEvent('yg_properties:server:withdrawSafeMoney', function(propertyId, 
     amount, propertyId
   })
 
-  p.Functions.AddMoney(Config.MoneyType, amount, 'property-safe-withdraw')
+  p.Functions.AddMoney(Config.Currency, amount, 'property-safe-withdraw')
   TriggerClientEvent('QBCore:Notify', src, ('$%s kasadan çektin.'):format(amount), 'success')
   broadcastPropertyUpdate(propertyId, 'yg_properties:client:propertyUpdated', propertyId)
 end)

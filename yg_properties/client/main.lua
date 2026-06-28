@@ -88,7 +88,7 @@ local function SpawnShellForProperty(prop)
     local shellId = tonumber(prop.shell_id)
     local shellBase = Config.ShellBase or vector3(1000.0, -1000.0, 1000.0)
     local base = vector3(
-        shellBase.x + (prop.id * 20.0),
+        shellBase.x + (prop.id * 100.0),
         shellBase.y,
         shellBase.z
     )

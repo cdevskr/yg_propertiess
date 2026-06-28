@@ -177,7 +177,7 @@ CreateThread(function()
               if amount > 0 then
                 local target = QBCore.Functions.GetPlayerByCitizenId(row.citizenid)
                 if target then
-                  target.Functions.AddMoney(Config.MoneyType, amount, 'property-business-payroll')
+                  target.Functions.AddMoney(Config.Currency, amount, 'property-business-payroll')
                   TriggerClientEvent('QBCore:Notify', target.PlayerData.source, ('$%s maaş aldın.'):format(amount), 'success')
                 end
               end

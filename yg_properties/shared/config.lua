@@ -714,7 +714,7 @@ Config.Notify = Config.Notify or {
 Config.InteriorCatalog = Config.InteriorCatalog or {}
 Config.InteriorById = Config.InteriorById or {}
 Config.InteriorCategories = Config.InteriorCategories or {
-  { id = 'shell', label = 'Shelller' },
+  { id = 'shell', label = 'Shells' },
   { id = 'custom', label = 'Custom' },
 }
 
