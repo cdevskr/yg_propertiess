@@ -716,6 +716,13 @@ RegisterNetEvent('yg_properties:client:enter', function(propertyId)
                 end
                 CurrentIPLs[#CurrentIPLs + 1] = ipl
             end
+            -- Wait until all IPLs are active before teleporting
+            local deadline = GetGameTimer() + 5000
+            for _, ipl in ipairs(meta.ipl or {}) do
+                while not IsIplActive(ipl) and GetGameTimer() < deadline do
+                    Wait(50)
+                end
+            end
             teleportRaw(meta.spawn)
             createInteriorZone(propertyId, { x = meta.exit.x, y = meta.exit.y, z = meta.exit.z })
         elseif prop.interior_spawn and prop.interior_spawn ~= '' then
