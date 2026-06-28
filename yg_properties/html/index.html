@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>YG BUILD PRO</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="hidden">
+    <div class="panel">
+      <div class="header">
+        <div class="title-section">
+          <i class="fas fa-tools"></i>
+          <span id="title">Build Catalog</span>
+        </div>
+        <div class="headerBtns">
+          <button id="manageBtn" class="btn"><i class="fas fa-layer-group"></i> Objelerim</button>
+          <button id="catalogBtn" class="btn hidden"><i class="fas fa-th-large"></i> Katalog</button>
+          <button id="closeBtn" class="btn btnDanger"><i class="fas fa-times"></i></button>
+        </div>
+      </div>
+
+      <div id="catalogView" class="view-container">
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input id="search" placeholder="Model veya isim ara..." />
+          </div>
+          <div class="row">
+            <input id="modelInput" placeholder="Manuel Kod (prop_...)" />
+            <button id="spawnModelBtn" class="btn-primary">SPAWN</button>
+          </div>
+        </div>
+        <div id="content" class="scrollable"></div>
+      </div>
+
+      <div id="manageView" class="view-container hidden">
+        <div class="toolbar">
+          <div class="row-between">
+            <span style="font-size:12px; color:var(--muted);">Mekandaki Aktif Objeler</span>
+            <button id="refreshBtn" class="btn-refresh"><i class="fas fa-sync-alt"></i> Yenile</button>
+          </div>
+        </div>
+        <div id="manageList" class="scrollable"></div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
