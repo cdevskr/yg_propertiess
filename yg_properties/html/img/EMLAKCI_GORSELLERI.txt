@@ -1,0 +1,49 @@
+BEKLENEN DOSYA LİSTESİ (shared/config.lua Config.RealtorCategories'ten otomatik üretildi)
+======================================================================
+
+  html/img/eclipse_daire_1.jpg                      -> Eclipse Daire 1
+  html/img/eclipse_daire_2.jpg                      -> Eclipse Daire 2
+  html/img/eclipse_daire_3.jpg                      -> Eclipse Daire 3
+  html/img/tinsel_towers.jpg                        -> Tinsel Towers
+  html/img/vinewood_villa.jpg                       -> Vinewood Villa
+  html/img/ucuz_baslangic_dairesi.jpg               -> Ucuz Başlangıç Dairesi
+  html/img/orta_segment_daire.jpg                   -> Orta Segment Daire
+  html/img/casino_penthouse.jpg                     -> Casino Penthouse
+  html/img/lynx_ev_tip_1_bos.jpg                    -> Lynx Ev Tip 1 (Boş)
+  html/img/lynx_ev_tip_1_doseli.jpg                 -> Lynx Ev Tip 1 (Döşeli)
+  html/img/lynx_ev_tip_2_bos.jpg                    -> Lynx Ev Tip 2 (Boş)
+  html/img/lynx_ev_tip_2_doseli.jpg                 -> Lynx Ev Tip 2 (Döşeli)
+  html/img/lynx_ev_tip_3_bos.jpg                    -> Lynx Ev Tip 3 (Boş)
+  html/img/lynx_ev_tip_3_doseli.jpg                 -> Lynx Ev Tip 3 (Döşeli)
+  html/img/michael_in_evi.jpg                       -> Michael'in Evi
+  html/img/franklin_hala_evi.jpg                    -> Franklin Hala Evi
+  html/img/ciftlik_evi.jpg                          -> Çiftlik Evi
+  html/img/orta_segment_ev_2.jpg                    -> Orta Segment Ev 2
+  html/img/lester_in_evi.jpg                        -> Lester'in Evi
+  html/img/trevor_in_evi.jpg                        -> Trevor'ın Evi
+  html/img/karavan_evi.jpg                          -> Karavan Evi
+  html/img/shell_ev_modern_2.jpg                    -> Shell Ev (Modern) 2
+  html/img/shell_ev_modern.jpg                      -> Shell Ev (Modern)
+  html/img/shell_ev_loft.jpg                        -> Shell Ev (Loft)
+  html/img/soygun_evi_furnished_mid.jpg             -> Soygun Evi (Furnished Mid)
+  html/img/envi_shell_1_bos.jpg                     -> Envi Shell 1 (Boş)
+  html/img/envi_shell_1_doseli.jpg                  -> Envi Shell 1 (Döşeli)
+  html/img/envi_shell_2_bos.jpg                     -> Envi Shell 2 (Boş)
+  html/img/envi_shell_2_doseli.jpg                  -> Envi Shell 2 (Döşeli)
+  html/img/envi_shell_3_bos.jpg                     -> Envi Shell 3 (Boş)
+  html/img/envi_shell_3_doseli.jpg                  -> Envi Shell 3 (Döşeli)
+  html/img/ofis_yonetici.jpg                        -> Ofis (Yönetici)
+  html/img/ofis_maze_bank.jpg                       -> Ofis (Maze Bank)
+  html/img/gece_kulubu.jpg                          -> Gece Kulübü
+  html/img/mc_kulup_binasi.jpg                      -> MC Kulüp Binası
+  html/img/esrar_serasi.jpg                         -> Esrar Serası
+  html/img/met_laboratuvari.jpg                     -> Met Laboratuvarı
+  html/img/kokain_deposu.jpg                        -> Kokain Deposu
+  html/img/shell_isletme_1.jpg                      -> Shell İşletme 1
+  html/img/shell_isletme_2.jpg                      -> Shell İşletme 2
+  html/img/konteyner_depo.jpg                       -> Konteyner Depo
+  html/img/motel_odasi.jpg                          -> Motel Odası
+  html/img/garaj_tamirhane.jpg                      -> Garaj / Tamirhane
+  html/img/dukkan_magaza.jpg                        -> Dükkan / Mağaza
+  html/img/bos_arsa_sifirdan_insa_et.jpg            -> Boş Arsa (Sıfırdan İnşa Et)
+  html/img/bos_isyeri_sifirdan_insa_et.jpg          -> Boş İşyeri (Sıfırdan İnşa Et)

@@ -1,0 +1,102 @@
+VG PROP PACK + MOUSE'S FLOOR & WALL MAP PACK — FiveM KURULUM TALİMATI
+========================================================================
+
+✅ yg_properties'in fxmanifest.lua'sında ZATEN 'stream/**/*' ve
+'stream/**/*.ytyp' (iç içe klasörleri de kapsayan) glob deseni kurulu —
+YENİ BİR fxmanifest DEĞİŞİKLİĞİNE GEREK YOK. Sadece dosyaları doğru
+klasöre koyman yeterli.
+
+1) yg_properties resource'unun İÇİNDEKİ "stream" klasörüne, İKİ ayrı
+   alt klasör aç ve dosyaları oraya koy:
+
+   yg_properties/
+     stream/
+       vg_props/
+         small_1x1.ydr
+         small_1x1_1.ydr ... small_1x1_6.ydr
+         small_1x2.ydr
+         small_1x2_1.ydr ... small_1x2_6.ydr
+         v_minigame.ytyp
+         vg_textures.ytd
+       mousewalls/
+         doorwall01.ydr ... doorwall40.ydr
+         wall01.ydr ... wall40.ydr
+         halfwall01.ydr ... halfwall40.ydr
+         longwall01.ydr ... longwall40.ydr
+         floor01.ydr ... floor30.ydr (floor14 pakette yok, normal)
+         mousewalls.ytyp
+         mousewalls.ytd
+
+2) Sunucuyu TAM YENİDEN BAŞLAT (resource restart yetmez).
+
+3) shared/config.lua zaten güncellendi — 203 yeni parça
+   Config.BuildCatalog'a eklendi:
+   - 160 Mouse duvar (Kapılı/Düz/Yarım/Uzun Duvar, her biri 40 varyant)
+   - 29 Mouse zemin
+   - 14 VG modüler blok (1x1 ve 1x2)
+   Hepsi "Duvar / Panel / Çit" ve "Zemin / Platform / Tavan"
+   kategorilerinde, Build modundaki NUI sekmesinde otomatik görünecek.
+
+4) Oyun içi test: Build sekmesini aç, kategorilere bak — yeni parçalar
+   listede olmalı. Birini seçip freecam'e gir, yerleştirmeyi dene.
+   Görünmüyorsa/"model bulunamadı" derse: sunucu tam restart edildi mi,
+   dosya adları TAM eşleşiyor mu (büyük/küçük harf dahil) kontrol et.
+
+
+========================================
+YENİ SHELL'LER (moto/pb_haus/finals/tihulu/apart_luxe/coke/motel_low/warehouse)
+========================================
+
+Bu shell'ler stream/**/* glob'u zaten yakaladığı için fxmanifest'e
+DOKUNMANA GEREK YOK — sadece dosyaları stream/ altına at (alt klasör
+şart değil), sunucuyu tam yeniden başlat.
+
+AKTİF (hemen çalışır):
+- pb_haus_shell_001 — emlakçıda "PB Haus" olarak görünüyor, ymap ile
+  sabit koordinata (35.62, 6662.32, 0.19) ışınlıyor.
+
+KALİBRASYON BEKLİYOR (finals_modernloftv1, tihulu_kafi_motel,
+apart_luxe_1, coke_business_empty, motel_low, warehouse_small):
+Bunların .ymap'i YOK, yani qb-interior mantığıyla (runtime spawn)
+kurulmaları lazım. Her biri için:
+  1. Oyunda: /shelltest <model_adi>  (örn: /shelltest motel_low)
+  2. Objenin İÇİNE gir, oyuncuların çıkacağı noktaya git
+  3. /shellexit yaz — konsola x/y/z/h değerleri basılacak
+  4. Bu değerleri shared/config.lua'da Config.NativeShells[29..34]
+     içindeki ilgili "exit = nil" satırına yapıştır (örn: exit = {x=1.2, y=-3.4, z=1.0, h=90.0})
+  5. Config.RealtorCategories'teki ilgili yorum satırının başındaki
+     "--" işaretini kaldır (emlakçıda görünsün diye)
+
+BEKLİYOR (koordinat gerekli):
+- moto_shell01 — .ymap'i var ama gerçek koordinatını bilmiyorum. Oyunda
+  git, koordinat al, bana ver — Config.IPLInteriors'taki
+  "moto_shell_1" satırını dolduracağım.
+
+========================================
+LYNX + PB HAUS + MOTO_SHELL01 -> NATIVE SHELL DÖNÜŞÜMÜ
+========================================
+
+İsteğin üzerine ymap-tabanlı (sabit gerçek-dünya koordinatı) shell'ler
+qb-interior mantığına (CreateObject ile özel/izole cep) dönüştürüldü:
+Lynx (6 tip), pb_haus_shell_001, moto_shell01.
+
+⚠️ ÖNEMLİ: Eski ymap koordinatları YENİ sistemde KULLANILAMAZ — hepsi
+SIFIRDAN kalibre edilmeli. Her biri için:
+
+  1. /shelltest t1_unfurn_shell   (örnek — model adını değiştir)
+  2. Objenin İÇİNE gir, çıkış noktasına git
+  3. /shellexit yaz — x/y/z/h değerlerini kopyala
+  4. shared/config.lua'da Config.NativeShells[35..42] içindeki ilgili
+     "exit = nil" satırına yapıştır
+  5. Config.RealtorCategories'teki ilgili yorum satırının "--"'ını kaldır
+
+Kalibre edilmesi gereken 8 model (ID -> model adı):
+  35 -> t1_unfurn_shell    36 -> t1_furn_shell
+  37 -> t2_unfurn_shell    38 -> t2_furn_shell
+  39 -> t3_unfurn_shell    40 -> t3_furn_shell
+  41 -> pb_haus_shell_001  42 -> moto_shell01_shell
+
+NOT: Bu shell'lerin .ymap dosyalarını artık stream'e ATMANA GEREK YOK
+(o mekanizmayı kullanmıyoruz) — ama collision (.ybn) dosyaları hâlâ
+gerekli olabilir (örn. moto_shell01_mlo.ybn, pb_haus_shell_kollision_001.ybn),
+onları stream'de bırak.

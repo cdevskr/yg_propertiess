@@ -1,0 +1,86 @@
+HAZIR MEKANLAR İÇİN GOOGLE ARAMA REHBERİ
+==========================================
+Bu liste sadece kind='ipl' (hazır, sabit konumlu) mülkler için — Shell
+tipindekiler (Michael'in Evi, Envi Shell'ler vb.) senin oyunundaki
+konumdan bağımsız, GENEL amaçlı 3D modeller, "GTA haritasında resmi bir
+yeri" yok, onlar için Google'da arama yapman işe yaramaz.
+
+⚠️ ÖNEMLİ UYARI — 6 TANESİ RESMİ GTA İÇERİĞİ DEĞİL:
+Lynx Ev Tip 1/2/3 (Boş/Döşeli) → bunlar Rockstar'ın DEĞİL, üçüncü parti
+bir topluluk paketinin (Lynxist/lynx_shells, GitHub) 3D modelleri. GTA
+haritasında "resmi" bir yerleri yok, Google'da "GTA 5 Lynx ev" diye
+arasan hiçbir şey çıkmaz. Bunlar için Google yerine, paketi indirdiğin
+GitHub sayfasındaki (Lynxist/lynx_shells) önizleme görsellerine bak.
+
+==========================================
+GERÇEK GTA ONLINE KONUMLARI (bunlar için arama yapabilirsin):
+==========================================
+
+Eclipse Daire 1/2/3
+  Dosya: eclipse_daire_1.jpg / eclipse_daire_2.jpg / eclipse_daire_3.jpg
+  Ara: "GTA Online Eclipse Towers apartment interior"
+  Not: Eclipse Towers'ın 3 farklı iç mekan tasarımı var (Tip 1/2/3),
+       hangi görseli hangisine koyacağını GTA Wiki'deki "Eclipse Towers"
+       sayfasında dairelerin iç mekan galerisinden seçebilirsin.
+
+Tinsel Towers
+  Dosya: tinsel_towers.jpg
+  Ara: "GTA Online Tinsel Towers apartment interior"
+
+Vinewood Villa
+  Dosya: vinewood_villa.jpg
+  Ara: "GTA Online Stilt Apartments Large interior"
+  Not: Config'te "Vinewood Villa" diye etiketlemişim ama resmi Rockstar
+       adı "Stilt Apartments (Large)" — arama yaparken bunu kullan.
+
+Ucuz Başlangıç Dairesi
+  Dosya: ucuz_baslangic_dairesi.jpg
+  Ara: "GTA Online Small Apartment interior"
+  Not: Tek bir binaya bağlı değil, GTA'nın "Small Apartment" tier'ının
+       genel iç mekan tasarımı — herhangi bir küçük daire ekran görüntüsü işini görür.
+
+Orta Segment Daire
+  Dosya: orta_segment_daire.jpg
+  Ara: "GTA Online Medium Apartment interior"
+  Not: Yukarıdaki gibi, "Medium Apartment" tier'ının genel tasarımı.
+
+Casino Penthouse
+  Dosya: casino_penthouse.jpg
+  Ara: "GTA Online Diamond Casino Penthouse interior"
+  Not: Bu, Rockstar'ın kendi resmi adı — en kolay bulacağın olacak.
+
+Ofis (Yönetici) / Ofis (Maze Bank)
+  Dosya: ofis_yonetici.jpg / ofis_maze_bank.jpg
+  Ara: "GTA Online Executive Office interior"
+  Not: Import/Export DLC'sindeki CEO ofisi — farklı büyüklükte birkaç
+       varyantı var, ikisi için de aynı genel aramayı kullanabilirsin.
+
+Gece Kulübü
+  Dosya: gece_kulubu.jpg
+  Ara: "GTA Online Nightclub interior After Hours"
+
+MC Kulüp Binası
+  Dosya: mc_kulup_binasi.jpg
+  Ara: "GTA Online Biker Clubhouse interior"
+
+Esrar Serası
+  Dosya: esrar_serasi.jpg
+  Ara: "GTA Online Weed Farm interior Bikers DLC"
+
+Met Laboratuvarı
+  Dosya: met_laboratuvari.jpg
+  Ara: "GTA Online Meth Lab interior Bikers DLC"
+
+Kokain Deposu
+  Dosya: kokain_deposu.jpg
+  Ara: "GTA Online Cocaine Lockup interior Bikers DLC"
+
+==========================================
+ÖNERİLEN KAYNAKLAR (ekran görüntüsü/galeri için):
+==========================================
+- gta.fandom.com (GTA Wiki) — her binanın kendi sayfasında iç mekan galerisi var
+- gtalens.com/map — interaktif harita, üstüne tıklayınca "Watch video" ile iç mekanı gösteriyor
+- YouTube'da "[konum adı] gta 5 interior tour" araması — video içinden ekran görüntüsü alabilirsin
+
+Görseli bulduktan sonra html/img/ klasörüne YUKARIDA yazan TAM dosya
+adıyla kaydetmen yeterli, kod tarafında hiçbir şey değiştirmene gerek yok.
